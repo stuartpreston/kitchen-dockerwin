@@ -8,13 +8,27 @@ An experimental Test Kitchen driver that supports Windows-based via Docker on a 
 
 You'll need an environment with Docker for Windows installed, running and configured to run Windows Containers, and a working ChefDK installation (alternatively Ruby + Devkit + Test Kitchen gem).
 
-Whilst not necessary, the example shown assumes you have created your own Docker image with Chef Client inside.
+## Install the gem
 
-## Example Dockerfile
+```
+gem install kitchen-dockerwin
+```
+
+If you are installing inside a Chef Workstation installation:
+
+```
+chef gem install kitchen-dockerwin
+```
+
+## Dockerfile
+
+Whilst not necessary, the example shown assumes you have created your own Docker image with Chef Client inside, this will dramatically speed up the testing process because the Chef Client will not need to be installed each time.
+
+An example `Dockerfile` follows:
 
 ```
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
-RUN ["powershell", "-executionpolicy unrestricted", "-noninteractive", "-command", ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install; remove-item $env:TEMP\*.msi -force"]
+RUN ["powershell", "-executionpolicy unrestricted", "-noninteractive", "-command", ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install;"]
 ```
 
 Example command line to build image:
