@@ -1,4 +1,5 @@
 require 'kitchen/shell_out'
+require 'kitchen/transport/dockercli'
 
 module Kitchen
   module Driver
@@ -12,8 +13,8 @@ module Kitchen
 
       def create(state)
         run_command("docker pull #{instance.driver[:image]}") unless config[:skip_pull]
-        mount_options = "--mount type=bind,source=\"c:\/\",target=\"c:\/mnt\/c\""
-        container_id = run_command("docker run -idt #{mount_options} --name #{instance.name} #{instance.driver[:image]}").strip
+        mount_options = config[:mount_options] || "type=bind,source=\"#{ENV['TEMP']}\",target=\"#{ENV['TEMP']},readonly\""
+        container_id = run_command("docker run -idt --mount #{mount_options} --name #{instance.name} #{instance.driver[:image]}").strip
         state[:container_id] = container_id
       end
 
@@ -25,6 +26,13 @@ module Kitchen
         info 'Removing container'
         run_command("docker rm #{container_id} > nul")
         state.delete(:container_id)
+      end
+
+      # Force the driver to use the Dockercli transport
+      def finalize_config!(instance)
+        super.tap do
+          instance.transport = Kitchen::Transport::Dockercli.new
+        end
       end
     end
   end

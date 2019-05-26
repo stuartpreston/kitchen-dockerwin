@@ -1,40 +1,49 @@
 # kitchen-dockerwin
 
-An experimental Test Kitchen driver that supports Windows-based via Docker on a Windows workstation
-
-**NOTE: `kitchen verify` is not yet supported when using this tool with InSpec.**
+An experimental Test Kitchen driver that supports Windows Containers via Docker on a Windows workstation.
 
 # Quickstart
 
-You'll need an environment with Docker for Windows installed, running and configured to run Windows Containers, and a working ChefDK installation (alternatively Ruby + Devkit + Test Kitchen gem).
+You'll need a workstation (Windows 10, Windows Server 2016 or higher) with Docker for Windows installed, running and configured to be able to run Windows Containers, and a working ChefDK installation (alternatively Ruby + Devkit + Test Kitchen gem).
 
-## Install the gem
+## Docker Configuration
+
+Edit the configuration file (usually located at `C:\ProgramData\docker\config\daemon.json`) and replace the configuration with the following, (i.e. adding the "hosts" value):
 
 ```
-gem install kitchen-dockerwin
+{
+  "registry-mirrors": [],
+  "insecure-registries": [],
+  "debug": true,
+  "experimental": false,
+  "hosts": ["tcp://0.0.0.0:2375"]
+}
 ```
+Restart Docker. You may wish to remove any previously-running images using `docker rm $(docker ps -a -q)`
 
-If you are installing inside a Chef Workstation installation:
+Ensure that Docker is running in Windows Container mode (right click the Docker icon in the System Notification area > **Switch to Windows containers** to be sure).
+
+## Install the gem (assumes Chef Workstation/Chef DK installation)
 
 ```
 chef gem install kitchen-dockerwin
 ```
 
-## Dockerfile
+## Create base container image
 
-Whilst not necessary, the example shown assumes you have created your own Docker image with Chef Client inside, this will dramatically speed up the testing process because the Chef Client will not need to be installed each time.
+Whilst you can use any compatible Windows Server image for your kernel, converge time will be improved if you can build your own image that adds the Chef Infra Client to the Windows Server Core image.
 
-An example `Dockerfile` follows:
+To build your own image, create a `Dockerfile` as follows:
 
 ```
 FROM mcr.microsoft.com/windows/servercore:ltsc2019
-RUN ["powershell", "-executionpolicy unrestricted", "-noninteractive", "-command", ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install;"]
+RUN ["powershell.exe", "-executionpolicy unrestricted", "-noninteractive", "-command", ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install; remove-item $env:TEMP\\*.msi -force"]
 ```
 
-Example command line to build image:
+Example command line to build the Docker image:
 
 ```
-PS> docker build -t stuartpreston/chef-client:15
+PS> docker build . -t stuartpreston/chef-client:latest
 ```
 
 ## Example kitchen.yml
@@ -50,21 +59,33 @@ provisioner:
   install_strategy: skip
   chef_client_path: c:\opscode\chef\bin\chef-client.bat
 
-transport:
-  name: dockercli
-
 verifier:
-  name: dummy
+  name: inspec
 
 platforms:
   - name: windows2019
     driver:
-      image: stuartpreston/chef-client:15
+      image: stuartpreston/chef-client:latest
       skip_pull: true
 
 suites:
   - name: default
 ```
+
+# Troubleshooting
+
+## "No such container"
+```
+>>>>>>     Failed to complete #verify action: [{"message":"No such container: f362e060cdc97feb4ff12ac22d072891558a80c93f207e31e8ccb9d7924fc6b4"}
+] on default-windows2019
+```
+Probable cause: Stale state file. If the container has been killed and removed (check with `docker ps -a`), then remove the .kitchen/*.yml file and retry.
+
+# Known Issues/Limitations
+
+* No support for Linux Containers on Windows (yet!)
+* Some Chef Infra Client features are unsupported when running in Windows Containers, such as resources that are dependent on the WMI stack (including WinRM)
+* `kitchen destroy` (i.e. kill and remove container) can take in excess of 1 minute on Windows.
 
 # License
 
