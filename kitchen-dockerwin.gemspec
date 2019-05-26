@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = 'kitchen-dockerwin'
-  spec.version       = '0.1.1'
+  spec.version       = '0.1.2'
   spec.authors       = ['Stuart Preston']
   spec.email         = ['stuart@chef.io']
   spec.summary       = 'Test Kitchen driver for Windows-based Docker containers'
