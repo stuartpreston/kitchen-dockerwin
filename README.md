@@ -50,7 +50,9 @@ PS> docker build . -t stuartpreston/chef-client:latest
 
 We need to tell Windows to use the TCP socket to connect to Docker, to do this run the following PowerShell command before running Test Kitchen:
 
-```$env:DOCKER_URL = "tcp://localhost:2375```
+```
+$env:DOCKER_URL = "tcp://localhost:2375"
+```
 
 ## Example kitchen.yml
 
